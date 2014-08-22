@@ -1,0 +1,29 @@
+{
+  "name": "Backbone.Grexer",
+  "version": "0.1.0",
+  "description": "Backbone with some other love from Grexer",
+  "main": "Backbone.Grexer.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tomasruizr/Backbone.Grexer"
+  },
+  "keywords": [
+    "Data",
+    "Binding",
+    "Computed",
+    "Fields"
+  ],
+  "author": "Tomás Ruiz",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/tomasruizr/Backbone.Grexer/issues"
+  },
+  "homepage": "https://github.com/tomasruizr/Backbone.Grexer",
+  "dependencies": {
+    "backbone": "^1.1.2",
+    "lodash": "^2.4.1"
+  }
+}
