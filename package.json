@@ -23,7 +23,7 @@
   },
   "homepage": "https://github.com/tomasruizr/Backbone.Grexer",
   "dependencies": {
-    "backbone": "^1.1.2",
+    "backbone": "tomasruizr/backbone",
     "lodash": "^2.4.1"
   }
 }

@@ -35,15 +35,16 @@
         
         bind: function (element, modelAtt, event, modelEvent) {
             if (event) {
+                var selector = $(element);
                 //view Bind
                 this.events[event + ' ' + element] = function () {
-                    this.model.set(modelAtt, $(element).attr('value') ? $(element).val() : $(element).text() );
+                    this.model.set(modelAtt, selector.attr('value') ? selector.val() : selector.text() );
                 }
             }
             if (modelEvent) {
                 //Att Bind
                 this.listenTo(this.model, modelEvent + ':' + modelAtt, function () {
-                    $(element).attr('value') ? $(element).val(this.model.get(modelAtt)) : $(element).text(this.model.get(modelAtt))
+                    selector.attr('value') ? $(element).val(this.model.get(modelAtt)) : $(element).text(this.model.get(modelAtt))
                  }, this);
             }
         },
