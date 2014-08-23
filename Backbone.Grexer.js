@@ -44,7 +44,7 @@
             if (modelEvent) {
                 //Att Bind
                 this.listenTo(this.model, modelEvent + ':' + modelAtt, function () {
-                    $(element).attr('value') ? $(element).val(this.model.get(modelAtt)) : $(element).text(this.model.get(modelAtt))
+                    selector.attr('value') ? $(element).val(this.model.get(modelAtt)) : $(element).text(this.model.get(modelAtt))
                  }, this);
             }
         },
