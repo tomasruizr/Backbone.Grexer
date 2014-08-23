@@ -38,13 +38,13 @@
                 var selector = $(element);
                 //view Bind
                 this.events[event + ' ' + element] = function () {
-                    this.model.set(modelAtt, selector.attr('value') ? selector.val() : selector.text() );
+                    this.model.set(modelAtt, $(element).attr('value') ? selector.val() : selector.text() );
                 }
             }
             if (modelEvent) {
                 //Att Bind
                 this.listenTo(this.model, modelEvent + ':' + modelAtt, function () {
-                    selector.attr('value') ? $(element).val(this.model.get(modelAtt)) : $(element).text(this.model.get(modelAtt))
+                    $(element).attr('value') ? $(element).val(this.model.get(modelAtt)) : $(element).text(this.model.get(modelAtt))
                  }, this);
             }
         },
