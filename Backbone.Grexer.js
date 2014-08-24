@@ -26,15 +26,13 @@
         get: function(attribute) {
             // Return a computed property value, if available:
             if (this.computeds[attribute]) {
-                return this.computeds[attribute].get();
+                return this.computeds[attribute].get(this);
             }
             return Backbone.Model.prototype.get.call(this, attribute);
         },
         save : function(key, value, options) {
             var attributes, opts;
-            //Need to use the same conditional that Backbone is using
-            //in its default save so that attributes and options
-            //are properly passed on to the prototype
+            
             if (_.isObject(key) || key == null) {
                 attributes = key || this.attributes;
                 opts = value || {};
@@ -43,12 +41,11 @@
                 attributes[key] = value;
                 opts = options || {};
             }
-
+            //exclude computeds and every thing in the ignore array from being synced.
             opts.data = JSON.stringify(_.omit(attributes,this.ignore));
             opts.contentType = "application/json";
 
-            //Finally, make a call to the default save now that we've
-            //got all the details worked out.
+            //Finally, make a call to the default save
             return Backbone.Model.prototype.save.call(this, attributes, opts);
         }
     });
@@ -57,9 +54,8 @@
     //**************************************************************************************************
     //
     Grexer.View = Backbone.View.extend({
-        events:{
-          //  "keyup #first_name" : function(){console.log('asd');}
-        },
+        events:{},
+        computeds:{},
         constructor: function(attributes) {
             Backbone.View.call(this, attributes);
             this.initComputeds(attributes);
@@ -67,8 +63,8 @@
         },
         initComputeds:function (attributes) {
             for (var name in this.computeds) {
-                //this.AddComputed(name, this.computeds[name].get, this.computeds[name].observe);
-                this._observeComputed(this.computeds[name].get, this.computeds[name].observe);
+                this.AddComputed(name, this.computeds[name].get, this.computeds[name].observe);
+                //this._observeComputed(this.computeds[name].get, this.computeds[name].observe);
             };
         },
         
@@ -87,14 +83,29 @@
             }
         },
         AddComputed: function (computedName, computeFunc, observeArr) {
-            this.computeds = this.computeds || {};
-            this.computeds[computedName] = {
-                get: computeFunc,
-                observe: observeArr
-            };
-            //add the computed name to the ignore list of attributes to sync.
-            this.model.ignore = this.model.ignore||[];
-            this.model.ignore.push(computedName);
+            if (!this.computeds[computedName]){
+                this.computeds[computedName] = {
+                    get: computeFunc,
+                    observe: observeArr
+                };
+            }
+            //Add the computed to the model if present
+            if (this.model && this.model != {}){
+                //*******************************************
+                // WARNING: string replacing the 'this.model' to 'this' when attaching the get function to the model.
+                // whenever difining a computed field in a view, use this.model to access the model data.
+                //*******************************************
+                var fnBody = computeFunc.toString().substring(computeFunc.toString().indexOf("{") + 1, computeFunc.toString().lastIndexOf("}"));
+                var f = new Function('self', fnBody.replace(/this.model/g,'self'));
+                this.model.computeds[computedName] = {
+                    get: function(self){
+                        return f(self);
+                    }
+                };
+                //add the computed name to the ignore list of attributes to sync.
+                this.model.ignore = this.model.ignore||[];
+                this.model.ignore.push(computedName);
+            }
             //bind the corresponding observables to update the computed field.
             this._observeComputed(computeFunc, observeArr);
         },

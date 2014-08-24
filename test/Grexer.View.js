@@ -10,11 +10,12 @@ var Person = Backbone.Grexer.Model.extend({
 
 var PersonView = Backbone.Grexer.View.extend({
     template: _.template($('#backboneView').html()),
+    
     computeds: {
         // add the computed field in the view definition
         'full_name': {
             get: function () {
-                $('#full_name').text(this.model.get('first_name') + ' ' + this.model.get('last_name'));
+                $('#n').text(this.model.get('first_name') + ' ' + this.model.get('last_name'));
                 return this.model.get('first_name') + ' ' + this.model.get('last_name');
             },
             observe: ['first_name', 'last_name']
@@ -57,8 +58,12 @@ var v = new PersonView({
     model: p
 });
 v.render();
-p.set('last_name', 'Ruizsss');
+p.set('last_name', 'Ruiz');
 p.set('first_name', 'Tomas');
 //Access a Computed property defined in the view directly in the model.
-console.log(p.get('full_name'));
-p.save();
+console.log('Total Salary: ' + p.get('total_salary'));
+console.log('Total Salary: ' + p.get('full_name'));
+// using localStorage in the example to demostrate the computed values are not stired.
+// though the localStorage itself behaves different that the symc methods used in a server enviroment
+// the procedure applied is the same.
+p.save(); 
