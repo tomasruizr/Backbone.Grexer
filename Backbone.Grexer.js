@@ -19,6 +19,43 @@
     var Grexer = Backbone.Grexer = {};
 
     //**************************************************************************************************
+    // Grexer.Model
+    //**************************************************************************************************
+    Grexer.View = Backbone.View.extend({
+        computeds:{},
+        get: function(attribute) {
+
+            // Return a computed property value, if available:
+            if (this.computeds(attribute)) {
+                return this.computeds(attribute).get();
+            }
+
+            // Default to native Backbone.Model get operation:
+            return Backbone.Model.apply(this, 'get', arguments);
+        }
+        save : function(key, value, options) {
+            var attributes, opts;
+            //Need to use the same conditional that Backbone is using
+            //in its default save so that attributes and options
+            //are properly passed on to the prototype
+            if (_.isObject(key) || key == null) {
+                attributes = key || this.attributes;
+                opts = value || {};
+            } else {
+                attributes = {};
+                attributes[key] = value;
+                opts = options || {};
+            }
+
+            opts.data = JSON.stringify(_.omit(attributes,this.ignore));
+            opts.contentType = "application/json";
+
+            //Finally, make a call to the default save now that we've
+            //got all the details worked out.
+            return Backbone.Model.prototype.save.call(this, attributes, opts);
+        }
+    });
+    //**************************************************************************************************
     // Grexer.View
     //**************************************************************************************************
     Grexer.View = Backbone.View.extend({
@@ -29,7 +66,8 @@
         },
     	initComputeds:function (attributes) {
             for (var name in this.computeds) {
-                this._observeComputed(this.computeds[name].get, this.computeds[name].observe);
+                this.AddComputed(name, this.computeds[name].get, this.computeds[name].observe);
+                //this._observeComputed(this.computeds[name].get, this.computeds[name].observe);
             };
         },
         
@@ -53,6 +91,9 @@
                 get: computeFunc,
                 observe: observeArr
             };
+            //add the computed name to the ignore list of attributes to sync.
+            this.model.ignore.push(computedName);
+            //bind the corresponding observables to update the computed field.
             this._observeComputed(computeFunc, observeArr);
         },
         _observeComputed: function (computeFunc, observeArr) {
