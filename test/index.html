@@ -7,22 +7,31 @@
 <body>
 	<div id='example'>Loading...</div>
 	<script id='backboneView' type='text/html'>
-    <p> First name: <input id = 'first_name'
-    class = 'input-small pull-right'
-    value = '<%=first_name %>'> </input>
-        </p>
+	    <p> First name: <input id='first_name'
+	    class = 'input-small pull-right'
+	    value = '<%=first_name %>'> </input>
+	        </p>
 
-    <p> Last name: <input id = 'last_name'
-    class = 'input-small pull-right'
-    value = '<%=last_name %>' />
+	    <p> Last name: <input id = 'last_name'
+	    class = 'input-small pull-right'
+	    value = '<%=last_name %>' />
 
-    </p>
-    <p>Hello, <span id='full_name'></span> ! </p>
+	    </p>
+		<p>Base Salary: <input type="text" id="base_salary" class = 'input-small pull-right' value='<%=base_salary%>'/>
+		</p>
+		<p>Bonus Salary: <input type="text" id="bonus_salary" class = 'input-small pull-right' value='<%=bonus_salary%>'/>
+		</p>
+
+	    <p>The total Salary is <span id='total_salary'></span></p>
+	    <p>Hello, <span id='full_name'></span>! </p>
+	    <p>Este es el 2 <span id='first_name2'></span>! </p>
 	</script>
 
 	<script src="http://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
-	<script src="http://cdnjs.cloudflare.com/ajax/libs/lodash.js/2.4.1/lodash.min.js"></script>
-	<script src="http://cdnjs.cloudflare.com/ajax/libs/backbone.js/1.1.2/backbone-min.js"></script>
+	<script src="node_modules/lodash/lodash.js"></script>
+	<script src="node_modules/backbone/backbone.js"></script>
+	<!-- for test locally the module with local storage. -->
+	<script src="node_modules/backbone.localStorage/backbone.localStorage.js"></script>
 	<script src="../Backbone.Grexer.js"></script>
 	<script src="Grexer.View.js"></script>
 </body>

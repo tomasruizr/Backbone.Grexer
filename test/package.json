@@ -1,7 +1,7 @@
 {
-  "name": "GrexerCSP",
-  "version": "0.0.0",
-  "description": "",
+  "name": "Backbone.Grexer_Test",
+  "version": "0.1.0",
+  "description": "Test for the Backbone.Grexer module",
   "main": "Grexer.View.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -9,6 +9,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "Backbone.Grexer": "git://github.com/tomasruizr/Backbone.Grexer"
+    "jquery": "^2.1.1",
+    "lodash": "^2.4.1",
+    "backbone": "tomasruizr/backbone",
+    "Backbone.localstorage": "tomasruizr/Backbone.localStorage",
+    "Backbone.Grexer": "tomasruizr/Backbone.Grexer"
   }
 }

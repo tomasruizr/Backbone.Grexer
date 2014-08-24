@@ -21,18 +21,19 @@
     //**************************************************************************************************
     // Grexer.Model
     //**************************************************************************************************
-    Grexer.View = Backbone.View.extend({
+    Grexer.Model = Backbone.Model.extend({
         computeds:{},
-        get: function(attribute) {
+        // get: function(attribute) {
 
-            // Return a computed property value, if available:
-            if (this.computeds(attribute)) {
-                return this.computeds(attribute).get();
-            }
+        //     // Return a computed property value, if available:
+        //     if (this.computeds[attribute]) {
+        //         return this.computeds[attribute].get();
+        //     }
 
-            // Default to native Backbone.Model get operation:
-            return Backbone.Model.apply(this, 'get', arguments);
-        }
+        //     // Default to native Backbone.Model get operation:
+        //     return Backbone.Model.call(this, 'get', attribute);
+
+        // },
         save : function(key, value, options) {
             var attributes, opts;
             //Need to use the same conditional that Backbone is using
@@ -58,40 +59,45 @@
     //**************************************************************************************************
     // Grexer.View
     //**************************************************************************************************
+    //
     Grexer.View = Backbone.View.extend({
-        events:{},
-        constructor: function(attributes, options) {
-            Backbone.View.apply(this, arguments);
-            this.initComputeds(arguments);
+        events:{
+          //  "keyup #first_name" : function(){console.log('asd');}
         },
-    	initComputeds:function (attributes) {
+        constructor: function(attributes) {
+            Backbone.View.call(this, attributes);
+            this.initComputeds(attributes);
+            this.delegateEvents();
+        },
+        initComputeds:function (attributes) {
             for (var name in this.computeds) {
-                this.AddComputed(name, this.computeds[name].get, this.computeds[name].observe);
-                //this._observeComputed(this.computeds[name].get, this.computeds[name].observe);
+                //this.AddComputed(name, this.computeds[name].get, this.computeds[name].observe);
+                this._observeComputed(this.computeds[name].get, this.computeds[name].observe);
             };
         },
         
         bind: function (element, modelAtt, event, modelEvent) {
             if (event) {
-                var selector = $(element);
                 //view Bind
                 this.events[event + ' ' + element] = function () {
-                    this.model.set(modelAtt, $(element).attr('value') ? selector.val() : selector.text() );
+                    this.model.set(modelAtt, $(element).attr('value') ? $(element).val() : $(element).text() );
                 }
             }
             if (modelEvent) {
                 //Att Bind
                 this.listenTo(this.model, modelEvent + ':' + modelAtt, function () {
-                    selector.attr('value') ? $(element).val(this.model.get(modelAtt)) : $(element).text(this.model.get(modelAtt))
+                    $(element).attr('value') ? $(element).val(this.model.get(modelAtt)) : $(element).text(this.model.get(modelAtt))
                  }, this);
             }
         },
         AddComputed: function (computedName, computeFunc, observeArr) {
+            this.computeds = this.computeds || {};
             this.computeds[computedName] = {
                 get: computeFunc,
                 observe: observeArr
             };
             //add the computed name to the ignore list of attributes to sync.
+            this.model.ignore = this.model.ignore||[];
             this.model.ignore.push(computedName);
             //bind the corresponding observables to update the computed field.
             this._observeComputed(computeFunc, observeArr);

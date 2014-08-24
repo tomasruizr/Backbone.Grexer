@@ -1,19 +1,16 @@
 var Person = Backbone.Grexer.Model.extend({
     defaults: {
-        'name': 'nombre',
-        'place': 'Lugar predefinido',
-        'time': 'Hoy',
         'first_name': 'nombre',
-        'last_name': 'apellido'
+        'last_name': 'apellido',
+        'base_salary' : 100,
+        'bonus_salary' : 50
     }
 });
 
 var PersonView = Backbone.Grexer.View.extend({
-
-
     template: _.template($('#backboneView').html()),
-
     computeds: {
+        // add the computed field in the view definition
         'full_name': {
             get: function () {
                 $('#full_name').text(this.model.get('first_name') + ' ' + this.model.get('last_name'));
@@ -22,10 +19,34 @@ var PersonView = Backbone.Grexer.View.extend({
             observe: ['first_name', 'last_name']
         }
     },
-
+    
     initialize: function () {
-        this.bind('#first_name', 'first_name', 'keyup', 'change');
-        this.bind('#last_name', 'last_name', 'keyup', 'change');
+        //Register the binds
+        
+        // bind the DOM event to the Model
+        this.bind('#first_name', 'first_name', 'keyup');
+        this.bind('#last_name', 'last_name', 'keyup');
+        this.bind('#base_salary', 'base_salary', 'keyup');
+        this.bind('#bonus_salary', 'bonus_salary', 'keyup');
+        //bind the Model event to de DOM.
+        this.bind('#first_name2', 'first_name', false, 'change');
+        
+
+        //Example of Register a computed field in programatically
+        this.AddComputed(
+            //Computed field name
+            'total_salary',
+            //get function
+            function(){
+                var value = (+this.model.get('base_salary')) + (+this.model.get('bonus_salary'));
+                //Update DOM
+                $('#total_salary').text(value);
+                //return value
+                return value;
+            },
+            //Module Attributes to observe
+            ['base_salary', 'bonus_salary']
+        );
     }
     
 });
@@ -35,5 +56,6 @@ var v = new PersonView({
     model: p
 });
 v.render();
-p.set('last_name', 'Ruiz');
+p.set('last_name', 'Ruizsss');
 p.set('first_name', 'Tomas');
+p.save();
