@@ -1,4 +1,5 @@
 var Person = Backbone.Grexer.Model.extend({
+    urlRoot: '/People',
     defaults: {
         'first_name': 'nombre',
         'last_name': 'apellido',
@@ -58,4 +59,6 @@ var v = new PersonView({
 v.render();
 p.set('last_name', 'Ruizsss');
 p.set('first_name', 'Tomas');
+//Access a Computed property defined in the view directly in the model.
+console.log(p.get('full_name'));
 p.save();

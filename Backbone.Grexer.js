@@ -23,17 +23,13 @@
     //**************************************************************************************************
     Grexer.Model = Backbone.Model.extend({
         computeds:{},
-        // get: function(attribute) {
-
-        //     // Return a computed property value, if available:
-        //     if (this.computeds[attribute]) {
-        //         return this.computeds[attribute].get();
-        //     }
-
-        //     // Default to native Backbone.Model get operation:
-        //     return Backbone.Model.call(this, 'get', attribute);
-
-        // },
+        get: function(attribute) {
+            // Return a computed property value, if available:
+            if (this.computeds[attribute]) {
+                return this.computeds[attribute].get();
+            }
+            return Backbone.Model.prototype.get.call(this, attribute);
+        },
         save : function(key, value, options) {
             var attributes, opts;
             //Need to use the same conditional that Backbone is using
