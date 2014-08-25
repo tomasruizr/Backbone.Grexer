@@ -1,3 +1,4 @@
+//This has to be a Grexer Model to support the acces to computed keys features.
 var Person = Backbone.Grexer.Model.extend({
     urlRoot: '/People',
     defaults: {
@@ -10,7 +11,7 @@ var Person = Backbone.Grexer.Model.extend({
 
 var PersonView = Backbone.Grexer.View.extend({
     template: _.template($('#backboneView').html()),
-    
+
     computeds: {
         // add the computed field in the view definition
         'full_name': {
@@ -21,10 +22,10 @@ var PersonView = Backbone.Grexer.View.extend({
             observe: ['first_name', 'last_name']
         }
     },
-    
+
     initialize: function () {
         //Register the binds
-        
+
         // bind the DOM event to the Model
         this.bind('#first_name', 'first_name', 'keyup', 'change');
         this.bind('#last_name', 'last_name', 'keyup');
@@ -32,7 +33,7 @@ var PersonView = Backbone.Grexer.View.extend({
         this.bind('#bonus_salary', 'bonus_salary', 'keyup');
         //bind the Model event to de DOM.
         this.bind('#first_name2', 'first_name', false, 'change');
-        
+
 
         //Example of Register a computed field in programatically
         this.AddComputed(
@@ -50,7 +51,7 @@ var PersonView = Backbone.Grexer.View.extend({
             ['base_salary', 'bonus_salary']
         );
     }
-    
+
 });
 var p = new Person();
 var v = new PersonView({
@@ -66,4 +67,4 @@ console.log('Total Salary: ' + p.get('full_name'));
 // using localStorage in the example to demostrate the computed values are not stired.
 // though the localStorage itself behaves different that the symc methods used in a server enviroment
 // the procedure applied is the same.
-p.save(); 
+p.save();
