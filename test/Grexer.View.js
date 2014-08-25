@@ -15,7 +15,7 @@ var PersonView = Backbone.Grexer.View.extend({
         // add the computed field in the view definition
         'full_name': {
             get: function () {
-                $('#n').text(this.model.get('first_name') + ' ' + this.model.get('last_name'));
+                $('#full_name').text(this.model.get('first_name') + ' ' + this.model.get('last_name'));
                 return this.model.get('first_name') + ' ' + this.model.get('last_name');
             },
             observe: ['first_name', 'last_name']
@@ -26,7 +26,7 @@ var PersonView = Backbone.Grexer.View.extend({
         //Register the binds
         
         // bind the DOM event to the Model
-        this.bind('#first_name', 'first_name', 'keyup');
+        this.bind('#first_name', 'first_name', 'keyup', 'change');
         this.bind('#last_name', 'last_name', 'keyup');
         this.bind('#base_salary', 'base_salary', 'keyup');
         this.bind('#bonus_salary', 'bonus_salary', 'keyup');
