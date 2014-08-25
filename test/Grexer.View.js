@@ -1,4 +1,4 @@
-//This has to be a Grexer Model to support the acces to computed keys features.
+//Extend from Backbone.Grexer.Model to support the acces to computed keys features.
 var Person = Backbone.Grexer.Model.extend({
     urlRoot: '/People',
     defaults: {
@@ -9,6 +9,7 @@ var Person = Backbone.Grexer.Model.extend({
     }
 });
 
+//Extend from Backbone.Grexer.View for the views.
 var PersonView = Backbone.Grexer.View.extend({
     template: _.template($('#backboneView').html()),
 
