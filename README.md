@@ -6,6 +6,7 @@ ___________________
 Basically adds:
 - Single or two way binding possibilities to the models with the views in the DOM.
 - Use of Computed properties in the models and views.
+- Model Validaion and error messages binding for the views.
 
 ##Bindings:
 Consider the following Model definition:
