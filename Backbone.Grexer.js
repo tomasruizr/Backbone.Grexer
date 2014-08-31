@@ -45,6 +45,16 @@
          */
         computeds:{},
         /**
+         * Functions that deals with validation errors in the model
+         *
+         * @method setError
+         *
+         * @param  {Object} errors an object describing the name of the attributes and errors.
+         */
+        setError:function(errors){
+
+        },
+        /**
          * Override of the Get function to include the computed values like if
          *         they where attributes of the model. In spite they are not
          *         synced.
@@ -63,6 +73,42 @@
             //return the Backbone.Model 'get' function.
             return Backbone.Model.prototype.get.call(this, attribute);
         },
+        /**
+         * Set override to check if the attributes being set are present in the
+         *         _validations_ property of the model
+         *
+         * @method set
+         *
+         * @param  {Object|String} key     The Attribute name (string), or an
+         *         object with a key value store of all the fields to be changed
+         *         and synced.
+         * @param  {Object} value   Object with the the value if the first
+         *         parameter is a string or a key value store of the options.
+         * @param  {Object} options Key value store of the options.
+         */
+        set: function(key, val, options) {
+            var attrs;
+            if (key == null) return this;
+
+            // Handle both `"key", value` and `{key: value}` -style arguments.
+            if (typeof key === 'object') {
+                attrs = key;
+                options = val;
+            } else {
+                (attrs = {})[key] = val;
+            }
+
+            options || (options = {});
+
+            //Validates if the attribute that is being set is present in the validation property of the model
+            for (att in attrs){
+                if (!this.validation[att]){
+                    this.setError({'att':'NotValidArgument'});
+                    return false;
+                }
+            }
+            return Backbone.Model.prototype.set.call(this, attrs, options);
+        }
         /**
          * Override of the save method to avoid saving the computed fields in
          *         the server when syncing as well as any other field in the
@@ -98,6 +144,11 @@
             return Backbone.Model.prototype.save.call(this, attributes, opts);
         }
     });
+
+    //**************************************************************************************************
+    // Grexer.Collection
+    //**************************************************************************************************
+    Grexer.Collection = Backbone.Collection.extend();
     //**************************************************************************************************
     // Grexer.View
     //**************************************************************************************************
