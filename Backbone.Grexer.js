@@ -45,6 +45,29 @@
          */
         computeds:{},
         /**
+         * Array of Error message descriptions
+         *
+         * @type {Array}
+         */
+        errors: em,
+        /**
+         * Override of The validate function that triggers the validation in the model.
+         *
+         * @method validate
+         *
+         * @param  {[type]} attrs   [description]
+         * @param  {[type]} options [description]
+         *
+         * @return {[type]}         [description]
+         */
+        validate: function(attrs, options){
+            var v = new Validate(); 
+            var res = v.validate(this.validation, attrs);
+            if (res)
+                setError(res);
+            return res;
+        },
+        /**
          * Functions that deals with validation errors in the model
          *
          * @method setError
@@ -52,7 +75,7 @@
          * @param  {Object} errors an object describing the name of the attributes and errors.
          */
         setError:function(errors){
-
+            // apply the bindings
         },
         /**
          * Override of the Get function to include the computed values like if
