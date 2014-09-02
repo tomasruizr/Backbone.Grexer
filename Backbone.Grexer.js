@@ -1,3 +1,4 @@
+
 /**
  * Backbone with some other Love from Grexer in a super lightweight fasion.
  * (c) 2014 Tomás Ruiz
@@ -12,19 +13,19 @@
 
 (function(root, factory) {
 
-	if (typeof exports !== 'undefined') {
-		// Define as CommonJS export:
-		module.exports = factory(require("lodash"), require("backbone"));
-	} else if (typeof define === 'function' && define.amd) {
-		// Define as AMD:
-		define(["lodash", "backbone"], factory);
-	} else {
-		// Just run it:
-		factory(root._, root.Backbone);
-	}
+    if (typeof exports !== 'undefined') {
+        // Define as CommonJS export:
+        module.exports = factory(require("lodash"), require("backbone"), require("./Validate.js"));
+    } else if (typeof define === 'function' && define.amd) {
+        // Define as AMD:
+        define(["lodash", "backbone", "validate"], factory);
+    } else {
+        // Just run it:
+        factory(root._, root.Backbone, root.Validate);
+    }
 
-}(this, function(_, Backbone) {
-	//Expose Namespace
+}(this, function(_, Backbone, Validate) {
+    //Expose Namespace
     var Grexer = Backbone.Grexer = {};
 
     //**************************************************************************************************
@@ -49,7 +50,7 @@
          *
          * @type {Array}
          */
-        errors: em,
+        errors: {},
         /**
          * Override of The validate function that triggers the validation in the model.
          *
@@ -63,19 +64,11 @@
         validate: function(attrs, options){
             var v = new Validate(); 
             var res = v.validate(this.validation, attrs);
-            if (res)
-                setError(res);
-            return res;
-        },
-        /**
-         * Functions that deals with validation errors in the model
-         *
-         * @method setError
-         *
-         * @param  {Object} errors an object describing the name of the attributes and errors.
-         */
-        setError:function(errors){
-            // apply the bindings
+            if (res){
+                this.errors = res;
+                return false;
+            }
+            return true;
         },
         /**
          * Override of the Get function to include the computed values like if
@@ -110,6 +103,7 @@
          * @param  {Object} options Key value store of the options.
          */
         set: function(key, val, options) {
+
             var attrs;
             if (key == null) return this;
 
@@ -123,15 +117,19 @@
 
             options || (options = {});
 
+            //always validate unless specified
+            if (!options.validate) options.validate = true;
+            //this.errors={};
+            
             //Validates if the attribute that is being set is present in the validation property of the model
             for (att in attrs){
                 if (!this.validation[att]){
-                    this.setError({'att':'NotValidArgument'});
+                    this.errors[att] = ['NotValidArgument'];
                     return false;
                 }
             }
             return Backbone.Model.prototype.set.call(this, attrs, options);
-        }
+        },
         /**
          * Override of the save method to avoid saving the computed fields in
          *         the server when syncing as well as any other field in the
