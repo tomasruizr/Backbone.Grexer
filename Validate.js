@@ -52,7 +52,7 @@
 	Validate.prototype.validate = function(valids, attrs){
 		if(!valids) valids = this.validations;
 		var errors = {};
-		for(att in valids){
+		for(att in attrs){
 			var res = this.doValidate(valids[att], attrs[att]);
 			if (res.length != 0) errors[att] = res;
 		}

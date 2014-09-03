@@ -38,6 +38,16 @@
      */
     Grexer.Model = Backbone.Model.extend({
         /**
+         * Override constructor in order to create the defaults
+         *
+         * @method constructor
+         */
+        constructor: function(attributes, options){
+            var opts = options || {};
+            opts['validate'] = false;
+            Backbone.Model.call(this, attributes, opts);
+        },
+        /**
          * Defines the attributes that are computeds in a view. For each
          *         Attribute will be a get method exposed to return the value of
          *         the computed value.
@@ -64,7 +74,7 @@
         validate: function(attrs, options){
             var v = new Validate(); 
             var res = v.validate(this.validation, attrs);
-            if (res){
+            if (Object.keys(res).length != 0){
                 this.errors = res;
                 return false;
             }
@@ -116,17 +126,25 @@
             }
 
             options || (options = {});
-
-            //always validate unless specified
-            if (!options.validate) options.validate = true;
-            //this.errors={};
-            
-            //Validates if the attribute that is being set is present in the validation property of the model
-            for (att in attrs){
-                if (!this.validation[att]){
-                    this.errors[att] = ['NotValidArgument'];
+            // when is false, not validate since it is most likelly called from the construction
+            // initializing the defaults. it is not a good practice to call the set with the
+            // validate = false attribute, is much better to just not include it if the validation
+            // is not required.
+            if (options.validate !== false) {
+                // validate only the attribute present in the model.
+                for (att in attrs){
+                    if (this.attributes[att] === 'undefined'){
+                        this.errors[att] = ['NotValidArgument'];
+                        return false;
+                    }
+                }
+                //Validates if the attribute that is being set is present in the validation property of the model
+                if (!this.validate(attrs, options)) {
+                    this.trigger('invalid', attrs);
                     return false;
                 }
+                this.trigger('valid', attrs);
+                options.validate = false;
             }
             return Backbone.Model.prototype.set.call(this, attrs, options);
         },
@@ -191,6 +209,12 @@
          */
         computeds:{},
         /**
+         * Stores a map of the DOM elements associated with the errors of Validation in the model.
+         *
+         * @type {Object}
+         */
+        validationElements:{},
+        /**
          * Override of the constructor.
          *
          * @method constructor
@@ -198,11 +222,14 @@
          * @param  {Object}    attributes All posible configuration for the View.
          */
         constructor: function(attributes) {
+            //call the Backbone constructor fot the view.
             Backbone.View.call(this, attributes);
             //bind all the computed values
             this.initComputeds();
             //Make sure all the DOM events are in place for the view.
             this.delegateEvents();
+            //Bind errors to the view.
+            this.bindErrors();
         },
         /**
          * Method that initialize and bind all the computed fields not only in
@@ -217,6 +244,29 @@
                 this.AddComputed(name, this.computeds[name].get, this.computeds[name].observe);
                 //this._observeComputed(this.computeds[name].get, this.computeds[name].observe);
             };
+        },
+        /**
+         * Bind the error of model validation to the respective DOM elements.
+         *
+         * @method bindErrors
+         */
+        bindErrors: function(){
+            this.listenTo(this.model, 'invalid', function(attrs){
+                for (element in this.model.errors){
+                    if ($(this.validationElements[element]).attr('value'))
+                        $(this.validationElements[element]).value(this.model.errors[element].join(', '));
+                    else
+                        $(this.validationElements[element]).text(this.model.errors[element].join(', '));
+                }
+            })
+            this.listenTo(this.model, 'valid', function(attrs){
+                for (element in attrs){
+                    if ($(this.validationElements[element]).attr('value'))
+                        $(this.validationElements[element]).value('');
+                    else
+                        $(this.validationElements[element]).text('');
+                }
+            })
         },
         /**
          * Adds a Computed property to the View, and the Model.
@@ -290,12 +340,38 @@
          *
          * @method bind
          *
-         * @param  {String} element    Element descriptor. Example '#element_id' or '.class_name'.
+         * @param  {String|Object} element    Element descriptor. Example
+         *         '#element_id' or '.class_name'. In case is an Object, it
+         *         spects and object with the same attributes as the parameters
+         *         of this function for its configuration. example:
+         *         ```javascript
+         *         {
+         *             element: '#first_name',
+         *             modelAtt: 'first_name',
+         *             event: 'click',
+         *             modelEvent: 'change',
+         *             errorElement: '#first_name_valid'
+         *         }
+         *         ```
          * @param  {String} modelAtt   Model Attribute. Example 'firt_name'
-         * @param  {String|bool} event      Name of the jquery DOM event to listen in the element. if false the binding will be done only in the Model->DOM direction.
-         * @param  {String|bool} modelEvent Name of the Backbone.Event event to listen in the Model. if false the binding will be done only in the DOM->Model direction.
+         * @param  {String|bool} event      Name of the jquery DOM event to
+         *         listen in the element. if false the binding will be done only
+         *         in the Model->DOM direction.
+         * @param  {String|bool} modelEvent Name of the Backbone.Event event to
+         *         listen in the Model. if false the binding will be done only
+         *         in the DOM->Model direction.
          */
-        bind: function (element, modelAtt, event, modelEvent) {
+        bind: function (element, modelAtt, event, modelEvent, errorElement) {
+            if (typeof element == 'object'){
+                this.bind(element.element, element.modelAtt, element.event, element.modelEvent, element.errorElement);
+                return;
+            }
+            else{
+                if (element && !(modelAtt && event && modelEvent && errorElement)){
+                    this.bind(element, element.substring(1), 'blur', 'change', element + '_valid');
+                    return;
+                }
+            }
             if (event) {
                 //view Bind
                 this.events[event + ' ' + element] = function () {
@@ -307,6 +383,9 @@
                 this.listenTo(this.model, modelEvent + ':' + modelAtt, function () {
                     $(element).attr('value') ? $(element).val(this.model.get(modelAtt)) : $(element).text(this.model.get(modelAtt))
                  }, this);
+            }
+            if (errorElement){
+                this.validationElements[element.substring(1)] = errorElement;
             }
         },
         /**
