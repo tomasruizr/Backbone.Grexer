@@ -197,6 +197,12 @@
      * @class Backbone.Grexer.View
      */
     Grexer.View = Backbone.View.extend({
+        /**
+         * Object that stores the messages with the errors for the model validation.
+         *
+         * @type {Object}
+         */
+        em: {},
         events:{},
         /**
          * Store of all the computed values of the view-model. the structure of
@@ -244,29 +250,6 @@
                 this.AddComputed(name, this.computeds[name].get, this.computeds[name].observe);
                 //this._observeComputed(this.computeds[name].get, this.computeds[name].observe);
             };
-        },
-        /**
-         * Bind the error of model validation to the respective DOM elements.
-         *
-         * @method bindErrors
-         */
-        bindErrors: function(){
-            this.listenTo(this.model, 'invalid', function(attrs){
-                for (element in this.model.errors){
-                    if ($(this.validationElements[element]).attr('value'))
-                        $(this.validationElements[element]).value(this.model.errors[element].join(', '));
-                    else
-                        $(this.validationElements[element]).text(this.model.errors[element].join(', '));
-                }
-            })
-            this.listenTo(this.model, 'valid', function(attrs){
-                for (element in attrs){
-                    if ($(this.validationElements[element]).attr('value'))
-                        $(this.validationElements[element]).value('');
-                    else
-                        $(this.validationElements[element]).text('');
-                }
-            })
         },
         /**
          * Adds a Computed property to the View, and the Model.
@@ -387,6 +370,67 @@
             if (errorElement){
                 this.validationElements[element.substring(1)] = errorElement;
             }
+        },
+        /**
+         * Bind the error of model validation to the respective DOM elements.
+         *
+         * @method bindErrors
+         */
+        bindErrors: function(){
+            this.listenTo(this.model, 'invalid', function(attrs){
+                for (element in this.model.errors){
+                    if ($(this.validationElements[element]).attr('value'))
+                        $(this.validationElements[element]).value(
+                            this.prepareErrorMssg(
+                                this.model.errors[element]
+                                , element
+                                , this.model.validation[element]
+                                )
+                            );
+                        // $(this.validationElements[element]).value(this.model.errors[element].join(', '));
+                    else
+                        $(this.validationElements[element]).text(
+                            this.prepareErrorMssg(
+                                this.model.errors[element]
+                                , element
+                                , this.model.validation[element]
+                                )
+                            );
+                        // $(this.validationElements[element]).text(this.model.errors[element].join(', '));
+                }
+            })
+            this.listenTo(this.model, 'valid', function(attrs){
+                for (element in attrs){
+                    if ($(this.validationElements[element]).attr('value'))
+                        $(this.validationElements[element]).value('');
+                    else
+                        $(this.validationElements[element]).text('');
+                }
+            })
+        },
+        prepareErrorMssg:function(errors, element, validations){
+            if (Object.keys(this.em).length != 0){
+                var arr = [];
+                var m;
+                for (var cont = errors.length - 1; cont >= 0; cont--) {
+                    if (validations.errMssg && validations.errMssg[errors[cont]])
+                        m = validations.errMssg[errors[cont]];
+                    else
+                        m = this.em[errors[cont]]
+                    arr.push(this.stringFormat(m, element, validations[errors]));
+                };
+                return arr.join(', ');
+            }
+
+        },
+        stringFormat: function(format) {
+            var args = Array.prototype.slice.call(arguments, 1);
+            return format.replace(/{(\d+)}/g, function(match, number) { 
+                return typeof args[number] != 'undefined'
+                    ? args[number] 
+                    : match
+                ;
+            });
         },
         /**
          * Predefinition of the Render Method where the template specified by
