@@ -42,22 +42,17 @@
 	//*******************************************
 	//Methods
 	//*******************************************
-	Validate.prototype.toDate = function (date) {
-	        if (Object.prototype.toString.call(date) === '[object Date]') {
-	            return date;
-	        }
-	        date = Date.parse(date);
-	        return !isNaN(date) ? new Date(date) : null;
-	    };
 	Validate.prototype.validate = function(valids, attrs){
 		if(!valids) valids = this.validations;
 		var errors = {};
 		for(att in attrs){
-			var res = this.doValidate(valids[att], attrs[att]);
-			if (res.length != 0) errors[att] = res;
+			if (valids[att]){
+				var res = this.doValidate(valids[att], attrs[att]);
+				if (res.length != 0) errors[att] = res;
+			}
 		}
 		return errors;
-	}
+	};
 
 	Validate.prototype.doValidate = function(att, value){
 		var res = [];
@@ -111,6 +106,16 @@
 		}
 		// default return
 		return res;
-	}
+	};
+	Validate.prototype.toDate = function (date) {
+        if (Object.prototype.toString.call(date) === '[object Date]') {
+            return date;
+        }
+        date = Date.parse(date);
+        return !isNaN(date) ? new Date(date) : null;
+    };
+    //*******************************************
+    // Return Variable.
+    //*******************************************
 	return Validate;
 }));

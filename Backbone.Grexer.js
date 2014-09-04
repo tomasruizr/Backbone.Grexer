@@ -62,7 +62,7 @@
          */
         errors: {},
         /**
-         * Override of The validate function that triggers the validation in the model.
+         * Override of The validate function that triggers the validations in the model.
          *
          * @method validate
          *
@@ -72,11 +72,13 @@
          * @return {[type]}         [description]
          */
         validate: function(attrs, options){
-            var v = new Validate(); 
-            var res = v.validate(this.validation, attrs);
-            if (Object.keys(res).length != 0){
-                this.errors = res;
-                return false;
+            if (this.validations && Object.keys(this.validations).length >= 1){
+                var v = new Validate(); 
+                var res = v.validate(this.validations, attrs);
+                if (Object.keys(res).length != 0){
+                    this.errors = res;
+                    return false;
+                }
             }
             return true;
         },
@@ -131,13 +133,13 @@
             // validate = false attribute, is much better to just not include it if the validation
             // is not required.
             if (options.validate !== false) {
-                // validate only the attribute present in the model.
-                for (att in attrs){
-                    if (this.attributes[att] === 'undefined'){
-                        this.errors[att] = ['NotValidArgument'];
-                        return false;
-                    }
-                }
+                // // validate only the attribute present in the model.
+                // for (att in attrs){
+                //     if (typeof this.attributes[att] == 'undefined'){
+                //         this.errors[att] = ['NotValidArgument'];
+                //         return false;
+                //     }
+                // }
                 //Validates if the attribute that is being set is present in the validation property of the model
                 if (!this.validate(attrs, options)) {
                     this.trigger('invalid', attrs);
@@ -230,12 +232,14 @@
         constructor: function(attributes) {
             //call the Backbone constructor fot the view.
             Backbone.View.call(this, attributes);
-            //bind all the computed values
-            this.initComputeds();
-            //Make sure all the DOM events are in place for the view.
-            this.delegateEvents();
-            //Bind errors to the view.
-            this.bindErrors();
+            if (this.model){
+                //bind all the computed values
+                this.initComputeds();
+                //Make sure all the DOM events are in place for the view.
+                this.delegateEvents();
+                //Bind errors to the view.
+                this.bindErrors();
+            }
         },
         /**
          * Method that initialize and bind all the computed fields not only in
@@ -356,15 +360,23 @@
                 }
             }
             if (event) {
-                //view Bind
+                if (this.$(element).length <= 0){
+                    console.error('The element ' + element + ' is not found in the view.');
+                    return;
+                }
+                // view Bind
                 this.events[event + ' ' + element] = function () {
-                    this.model.set(modelAtt, $(element).attr('value') ? $(element).val() : $(element).text() );
+                    this.model.set(modelAtt, this.$(element).attr('value') ? this.$(element).val() : this.$(element).text() );
                 }
             }
             if (modelEvent) {
+                if (!this.model.has(modelAtt)){
+                    console.error('The model doesn\'t have an attribute with the name ' + modelAtt);
+                    return;
+                }
                 //Att Bind
                 this.listenTo(this.model, modelEvent + ':' + modelAtt, function () {
-                    $(element).attr('value') ? $(element).val(this.model.get(modelAtt)) : $(element).text(this.model.get(modelAtt))
+                    this.$(element).attr('value') ? this.$(element).val(this.model.get(modelAtt)) : this.$(element).text(this.model.get(modelAtt))
                  }, this);
             }
             if (errorElement){
@@ -377,34 +389,35 @@
          * @method bindErrors
          */
         bindErrors: function(){
+            if (!this.model.validations || Object.keys(this.model.validations).length < 1) return;
             this.listenTo(this.model, 'invalid', function(attrs){
                 for (element in this.model.errors){
-                    if ($(this.validationElements[element]).attr('value'))
-                        $(this.validationElements[element]).value(
+                    if (this.$(this.validationElements[element]).attr('value'))
+                        this.$(this.validationElements[element]).value(
                             this.prepareErrorMssg(
                                 this.model.errors[element]
                                 , element
-                                , this.model.validation[element]
+                                , this.model.validations[element]
                                 )
                             );
-                        // $(this.validationElements[element]).value(this.model.errors[element].join(', '));
+                        // this.$(this.validationElements[element]).value(this.model.errors[element].join(', '));
                     else
-                        $(this.validationElements[element]).text(
+                        this.$(this.validationElements[element]).text(
                             this.prepareErrorMssg(
                                 this.model.errors[element]
                                 , element
-                                , this.model.validation[element]
+                                , this.model.validations[element]
                                 )
                             );
-                        // $(this.validationElements[element]).text(this.model.errors[element].join(', '));
+                        // this.$(this.validationElements[element]).text(this.model.errors[element].join(', '));
                 }
             })
             this.listenTo(this.model, 'valid', function(attrs){
                 for (element in attrs){
-                    if ($(this.validationElements[element]).attr('value'))
-                        $(this.validationElements[element]).value('');
+                    if (this.$(this.validationElements[element]).attr('value'))
+                        this.$(this.validationElements[element]).value('');
                     else
-                        $(this.validationElements[element]).text('');
+                        this.$(this.validationElements[element]).text('');
                 }
             })
         },
@@ -443,8 +456,14 @@
          */
         render: function () {
             if(this.template) {
-                this.$el.html(this.template(this.model.attributes));
+                var obj;
+                if (this.model) obj = this.model.attributes;
+                if (this.collection) obj = {'collection':this.collection.models};
+                this.$el.html(this.template(obj));
             }
+            if (this.bindings)
+                this.bindings();
+            this.bindErrors();
             return this;
         }
     });
