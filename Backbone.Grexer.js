@@ -75,8 +75,10 @@
             if (this.validations && Object.keys(this.validations).length >= 1){
                 var v = new Validate(); 
                 var res = v.validate(this.validations, attrs);
+                // errors will be set to an empty object in case there are no erros
+                // for further validation
+                this.errors = res;
                 if (Object.keys(res).length != 0){
-                    this.errors = res;
                     return false;
                 }
             }
@@ -132,20 +134,18 @@
             // initializing the defaults. it is not a good practice to call the set with the
             // validate = false attribute, is much better to just not include it if the validation
             // is not required.
+            // 
+            // si es false no va a validat
+            // si es undefined va a validar y setear
+            // si es true va a validar y setear solo si es true.
             if (options.validate !== false) {
-                // // validate only the attribute present in the model.
-                // for (att in attrs){
-                //     if (typeof this.attributes[att] == 'undefined'){
-                //         this.errors[att] = ['NotValidArgument'];
-                //         return false;
-                //     }
-                // }
                 //Validates if the attribute that is being set is present in the validation property of the model
                 if (!this.validate(attrs, options)) {
                     this.trigger('invalid', attrs);
-                    return false;
+                    if (options.validate === true) return false;
+                } else {
+                    this.trigger('valid', attrs);
                 }
-                this.trigger('valid', attrs);
                 options.validate = false;
             }
             return Backbone.Model.prototype.set.call(this, attrs, options);
@@ -366,7 +366,9 @@
                     return;
                 }
                 this.events[event + ' ' + element] = function () {
-                    this.model.set(modelAtt, this.$(element).attr('value') ? this.$(element).val() : this.$(element).text() );
+                    var newVal = this.$(element).attr('value') ? this.$(element).val() : this.$(element).text();
+                    if (this.model.get(modelAtt) !== newVal)
+                        this.model.set(modelAtt, newVal );
                 }
             }
             //Att Bind
@@ -376,7 +378,9 @@
                     return;
                 }
                 this.listenTo(this.model, modelEvent + ':' + modelAtt, function () {
-                    this.$(element).attr('value') ? this.$(element).val(this.model.get(modelAtt)) : this.$(element).text(this.model.get(modelAtt))
+                    var actualVal = this.$(element).attr('value') ? this.$(element).val() : this.$(element).text(); 
+                    if (actualVal !== this.model.get(modelAtt))
+                        this.$(element).attr('value') ? this.$(element).val(this.model.get(modelAtt)) : this.$(element).text(this.model.get(modelAtt))
                  }, this);
             }
             if (errorElement){
