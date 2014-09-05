@@ -236,7 +236,7 @@
                 //bind all the computed values
                 this.initComputeds();
                 //Make sure all the DOM events are in place for the view.
-                this.delegateEvents();
+                //this.delegateEvents();
                 //Bind errors to the view.
                 this.bindErrors();
             }
@@ -355,26 +355,26 @@
             }
             else{
                 if (element && !(modelAtt && event && modelEvent && errorElement)){
-                    this.bind(element, element.substring(1), 'blur', 'change', element + '_valid');
+                    this.bind(element, element.substring(1), 'focusout', 'change', element + '_valid');
                     return;
                 }
             }
+            // view Bind
             if (event) {
                 if (this.$(element).length <= 0){
                     console.error('The element ' + element + ' is not found in the view.');
                     return;
                 }
-                // view Bind
                 this.events[event + ' ' + element] = function () {
                     this.model.set(modelAtt, this.$(element).attr('value') ? this.$(element).val() : this.$(element).text() );
                 }
             }
+            //Att Bind
             if (modelEvent) {
                 if (!this.model.has(modelAtt)){
                     console.error('The model doesn\'t have an attribute with the name ' + modelAtt);
                     return;
                 }
-                //Att Bind
                 this.listenTo(this.model, modelEvent + ':' + modelAtt, function () {
                     this.$(element).attr('value') ? this.$(element).val(this.model.get(modelAtt)) : this.$(element).text(this.model.get(modelAtt))
                  }, this);
@@ -389,6 +389,7 @@
          * @method bindErrors
          */
         bindErrors: function(){
+            if (!this.model) return;
             if (!this.model.validations || Object.keys(this.model.validations).length < 1) return;
             this.listenTo(this.model, 'invalid', function(attrs){
                 for (element in this.model.errors){
@@ -459,11 +460,15 @@
                 var obj;
                 if (this.model) obj = this.model.attributes;
                 if (this.collection) obj = {'collection':this.collection.models};
+                this.$el.empty();
                 this.$el.html(this.template(obj));
+                if (this.bindings)
+                    this.bindings();
+                this.bindErrors();
+                this.undelegateEvents();
+                this.delegateEvents();
+
             }
-            if (this.bindings)
-                this.bindings();
-            this.bindErrors();
             return this;
         }
     });
