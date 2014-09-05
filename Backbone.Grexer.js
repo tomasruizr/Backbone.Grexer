@@ -457,15 +457,13 @@
          */
         render: function () {
             if(this.template) {
-                var obj;
+                var obj = {};
                 if (this.model) obj = this.model.attributes;
                 if (this.collection) obj = {'collection':this.collection.models};
-                this.$el.empty();
                 this.$el.html(this.template(obj));
                 if (this.bindings)
                     this.bindings();
                 this.bindErrors();
-                this.undelegateEvents();
                 this.delegateEvents();
 
             }
