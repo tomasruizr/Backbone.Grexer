@@ -47,10 +47,10 @@
             var opts = options || {};
             opts['validate'] = false;
             Backbone.Model.call(this, attributes, opts);
-            //initialize all the computed values
+        //     //initialize all the computed values
             this.initComputeds();
-            //initialize all the formated values
-            this.initFormateds();
+        //     //initialize all the formated values
+        //     this.initFormateds();
         },
         /**
          * Defines the attributes that are computed in a view. For each
@@ -100,14 +100,14 @@
          *
          * @return {Object}           Returns the value of the Attribute.
          */
-        // get: function(attribute) {
-        //     // Return a formated property value
-        //     // if (this.formated[attribute]) {
-        //     //     return this.formated[attribute].get(this);
-        //     // }
-        //     //return the Backbone.Model 'get' function.
-        //     return Backbone.Model.prototype.get.call(this, attribute);
-        // },
+        get: function(attribute) {
+            // Return a computed property value
+            if (this.computed[attribute]) {
+                return this.computed[attribute].get(this);
+            }
+            //return the Backbone.Model 'get' function.
+            return Backbone.Model.prototype.get.call(this, attribute);
+        },
         /**
          * Set override to check if the attributes being set are present in the
          *         _validations_ property of the model
@@ -135,23 +135,6 @@
             options || (options = {}); 
             var self = this;
 
-            //////////////////////////////////////
-            //check for computed and formateds //
-            //////////////////////////////////////
-            var comps = [];
-            _.forIn(attrs, function(value, key){
-                if (_.has(self.computed, key)){
-                    self.computed[key].set(self, value);
-                } else {
-                    return;
-                }
-                self.trigger('change:'+ key, self);
-                comps.push(key);
-            });
-            //remove computed or formated fields from the set.
-            attrs = _.omit(attrs, comps);
-            if (Object.keys(attrs).length == 0) return;
-
             /////////////
             //validate //
             /////////////
@@ -172,8 +155,25 @@
                     this.trigger('valid', attrs);
                 }
                 options.validate = false;
+
             }
 
+            //////////////////////
+            //check for computed//
+            //////////////////////
+            var comps = [];
+            _.forIn(attrs, function(value, key){
+                if (!_.has(self.computed, key) || self.attributes[key] === value){
+                    return;
+                } 
+                self.computed[key].set(self, value);
+                self.trigger('change:'+ key, self);
+                comps.push(key);
+            });
+            // //remove computed or formated fields from the set.
+            attrs = _.omit(attrs, comps);
+            if (Object.keys(attrs).length == 0) return;
+            
             /////////////////
             //Backbone Set //
             /////////////////
@@ -207,14 +207,14 @@
                 opts = options || {};
             }
             //exclude computed and every thing in the ignore array from being synced.
-            var self = this;
-            _.forIn(attributes, function(value, key){
-                if (_.has(this.formated, key)){
-                    self.attibutes[key] = self.formated[key].get(self);
-                }
-            });
+            // var self = this;
+            // _.forIn(attributes, function(value, key){
+            //     if (_.has(this.formated, key)){
+            //         self.attibutes[key] = self.formated[key].get(self);
+            //     }
+            // });
             var attrs = _.omit(attributes,this.ignore);
-            opts.data = JSON.stringify();
+            opts.data = JSON.stringify(attrs);
             opts.contentType = "application/json";
 
             //Finally, make a call to the default save
@@ -227,15 +227,15 @@
          *
          * @return {object} The attributes hash representation for the model.
          */
-        parse: function(resp, options){ 
-            var self = this;
-            _.forIn(resp, function(value, key){
-                if (_.has(this.formated, key)){
-                    resp[key] = self.formated[key].set(self, value);
-                }
-            });
-            return resp;
-        },
+        // parse: function(resp, options){ 
+        //     var self = this;
+        //     _.forIn(resp, function(value, key){
+        //         if (_.has(this.formated, key)){
+        //             resp[key] = self.formated[key].set(self, value);
+        //         }
+        //     });
+        //     return resp;
+        // },
         /**
          * Method that initialize and bind all the computed fields not only in
          *         the view but also in the model.
@@ -243,15 +243,16 @@
          * @method initComputeds
          */
         initComputeds:function () {
-            for (var name in this.computed) {
-                this.AddComputed(name, this.computed[name], true);
-            };
+            var self = this;
+            var comps = _.cloneDeep(this.computed);
+            _.forIn(comps, function(value, key){
+                self.AddComputed(key, value);
+            });
+            // for (var name in this.computed) {
+            //     this.AddComputed(name, this.computed[name]);
+            // };
         },
-        initFormateds: function (){
-            for (var name in this.formated) {
-                this.AddComputed(name, this.formated[name]);
-            };
-        }
+
         /**
          * Adds a Computed property to the View, and the Model.
          *
@@ -273,43 +274,34 @@
          */
         AddComputed: function (name, computed, init) {
             
-            this.computed[name] = {
-                get: computed.get,
-                set: computed.set,
-                observe: computed.observe
-            };
-        
-            //Add the computed to the model if present
-            if (this && this != {}){
-                //*******************************************
-                // WARNING: string replacing the 'this' to 'this' when attaching the get function to the model.
-                // whenever difining a computed field in a view, use this to access the model data.
-                //*******************************************
-                this.computed[name] = {};
-                if (computed.get){
-                    var GetFnBody = computed.get.toString().substring(computed.get.toString().indexOf("{") + 1, computed.get.toString().lastIndexOf("}"));
-                    var GetF = new Function('self', GetFnBody.replace(/this/g,'self'));
-                    this.computed[name]['get'] = function(self){
-                        return GetF(self);
-                    };
-                    if (init) this.attributes[name] = this.computed[name].get(this);
-                }
-                if (computed.set){
-                    var SetFnBody = computed.set.toString().substring(computed.set.toString().indexOf("{") + 1, computed.set.toString().lastIndexOf("}"));
-                    var SetF = new Function('self', 'value', SetFnBody.replace(/this/g,'self'));
-                    this.computed[name]['set'] = function(self, value){
-                        return SetF(self, value);
-                    };
-                }
-                //add the computed name to the ignore list of attributes to sync.
-                if (computed.ignore !== false){
-                    this.ignore = this.ignore||[];
-                    this.ignore.push(name);
-                }
-                //bind the corresponding observables to update the computed field.
-                if (computed.observe){
-                    this._observeComputed(name, computed.observe);
-                }
+            //*******************************************
+            // WARNING: string replacing the 'this' to 'this' when attaching the get function to the model.
+            // whenever difining a computed field in a view, use this to access the model data.
+            //*******************************************
+            
+            // if (computed.get){
+            //     var GetFnBody = computed.get.toString().substring(computed.get.toString().indexOf("{") + 1, computed.get.toString().lastIndexOf("}"));
+            //     var GetF = new Function('self', GetFnBody.replace(/this/g,'self'));
+            //     this.computed[name].get = function(self){
+            //         return GetF(self);
+            //     };
+            //     //if (init) this.attributes[name] = this.computed[name].get(this);
+            // }
+            // if (computed.set){
+            //     var SetFnBody = computed.set.toString().substring(computed.set.toString().indexOf("{") + 1, computed.set.toString().lastIndexOf("}"));
+            //     var SetF = new Function('self', 'value', SetFnBody.replace(/this/g,'self'));
+            //     this.computed[name].set = function(self, value){
+            //         return SetF(self, value);
+            //     };
+            // }
+            //add the computed name to the ignore list of attributes to sync.
+            if (computed.ignore === true){
+                this.ignore = this.ignore||[];
+                this.ignore.push(name);
+            }
+            //bind the corresponding observables to update the computed field.
+            if (computed.observe){
+                this._observeComputed(name, computed.observe);
             }
         },
         /**
@@ -330,12 +322,18 @@
             if (observeArr && observeArr.length > 0) {
                 for (var cont = 0; cont < observeArr.length; cont++) {
                     this.listenTo(this, 'change:' + observeArr[cont], function(){
-                        this.attributes[name] = this.computed[name].get(this);
+                        //this.attributes[name] = this.computed[name].get(this);
                         this.trigger('change:' + name, this);
                     });
                 };
             }
         },
+        getAttrsForRender: function(){
+            var self = this;
+            return _.mapValues(this.attributes, function(value, key){
+                return self.get(key);
+            });
+        }
     });
 
     //**************************************************************************************************
@@ -531,8 +529,8 @@
         render: function () {
             if(this.template) {
                 var obj = {};
-                if (this.model) obj = this.model.attributes;
-                if (this.collection) obj = {'collection':this.collection.models};
+                if (this.model) obj = {'model': this.model}
+                if (this.collection) obj = {'collection': this.collection.models}
                 this.$el.html(this.template(obj));
                 if (this.bindings)
                     this.bindings();
