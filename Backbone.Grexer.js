@@ -47,8 +47,10 @@
             var opts = options || {};
             opts['validate'] = false;
             Backbone.Model.call(this, attributes, opts);
-            //bind all the computed values
+            //initialize all the computed values
             this.initComputeds();
+            //initialize all the formated values
+            this.initFormateds();
         },
         /**
          * Defines the attributes that are computed in a view. For each
@@ -242,9 +244,14 @@
          */
         initComputeds:function () {
             for (var name in this.computed) {
-                this.AddComputed(name, this.computed[name]);
+                this.AddComputed(name, this.computed[name], true);
             };
         },
+        initFormateds: function (){
+            for (var name in this.formated) {
+                this.AddComputed(name, this.formated[name]);
+            };
+        }
         /**
          * Adds a Computed property to the View, and the Model.
          *
@@ -258,11 +265,13 @@
          *         for getting it's value, receive no parameters and returs the
          *         calculation result. Set: function that stores the attributes
          *         values from the calculated input, performing a reverse
-         *         calculation. observe: The name of the model attributes
-         *         that will be observed and trigger the recalculation of the
-         *         field when change.
+         *         calculation. observe: The name of the model attributes that
+         *         will be observed and trigger the recalculation of the field
+         *         when change.
+         * @param  {bool} init specifies if the attribute should be initialized
+         *         in the attributes hash in the model
          */
-        AddComputed: function (name, computed) {
+        AddComputed: function (name, computed, init) {
             
             this.computed[name] = {
                 get: computed.get,
@@ -283,7 +292,7 @@
                     this.computed[name]['get'] = function(self){
                         return GetF(self);
                     };
-                    this.attributes[name] = this.computed[name].get(this);
+                    if (init) this.attributes[name] = this.computed[name].get(this);
                 }
                 if (computed.set){
                     var SetFnBody = computed.set.toString().substring(computed.set.toString().indexOf("{") + 1, computed.set.toString().lastIndexOf("}"));
