@@ -47,6 +47,8 @@
             var opts = options || {};
             opts['validate'] = false;
             Backbone.Model.call(this, attributes, opts);
+            //bind all the computed values
+            this.initComputeds();
         },
         /**
          * Defines the attributes that are computed in a view. For each
@@ -231,7 +233,100 @@
                 }
             });
             return resp;
-        }
+        },
+        /**
+         * Method that initialize and bind all the computed fields not only in
+         *         the view but also in the model.
+         *
+         * @method initComputeds
+         */
+        initComputeds:function () {
+            for (var name in this.computed) {
+                this.AddComputed(name, this.computed[name]);
+            };
+        },
+        /**
+         * Adds a Computed property to the View, and the Model.
+         *
+         * @method AddComputed
+         *
+         * @param  {String}    name The name of the computed attribute, is the
+         *         same name that will be used latter to acces the value in the
+         *         model.
+         * @param  {object}    computed  Object that contains the definition of
+         *         the computed Field. It's structor is: Get: The get function
+         *         for getting it's value, receive no parameters and returs the
+         *         calculation result. Set: function that stores the attributes
+         *         values from the calculated input, performing a reverse
+         *         calculation. observe: The name of the model attributes
+         *         that will be observed and trigger the recalculation of the
+         *         field when change.
+         */
+        AddComputed: function (name, computed) {
+            
+            this.computed[name] = {
+                get: computed.get,
+                set: computed.set,
+                observe: computed.observe
+            };
+        
+            //Add the computed to the model if present
+            if (this && this != {}){
+                //*******************************************
+                // WARNING: string replacing the 'this' to 'this' when attaching the get function to the model.
+                // whenever difining a computed field in a view, use this to access the model data.
+                //*******************************************
+                this.computed[name] = {};
+                if (computed.get){
+                    var GetFnBody = computed.get.toString().substring(computed.get.toString().indexOf("{") + 1, computed.get.toString().lastIndexOf("}"));
+                    var GetF = new Function('self', GetFnBody.replace(/this/g,'self'));
+                    this.computed[name]['get'] = function(self){
+                        return GetF(self);
+                    };
+                    this.attributes[name] = this.computed[name].get(this);
+                }
+                if (computed.set){
+                    var SetFnBody = computed.set.toString().substring(computed.set.toString().indexOf("{") + 1, computed.set.toString().lastIndexOf("}"));
+                    var SetF = new Function('self', 'value', SetFnBody.replace(/this/g,'self'));
+                    this.computed[name]['set'] = function(self, value){
+                        return SetF(self, value);
+                    };
+                }
+                //add the computed name to the ignore list of attributes to sync.
+                if (computed.ignore !== false){
+                    this.ignore = this.ignore||[];
+                    this.ignore.push(name);
+                }
+                //bind the corresponding observables to update the computed field.
+                if (computed.observe){
+                    this._observeComputed(name, computed.observe);
+                }
+            }
+        },
+        /**
+         * Binds the events to the observe attributes and retriger calculation of
+         *         computed attributes on change.
+         *
+         * @method _observeComputed
+         *
+         * @param  {Function}    computeFunc  The function that performs the
+         *         calculation of the computed value. This functions receives no
+         *         parameters and return the value of the attribute. In this
+         *         function is opt to the user to affect the DOM.
+         * @param  {Array}    observeArr   The name of the model attributes that
+         *         will be observed and trigger the recalculation of the field
+         *         when change.
+         */
+        _observeComputed: function (name, observeArr) {
+            if (observeArr && observeArr.length > 0) {
+                for (var cont = 0; cont < observeArr.length; cont++) {
+                    this.listenTo(this, 'change:' + observeArr[cont], function(){
+                        this.attributes[name] = this.computed[name].get(this);
+                        this.trigger('change:' + name, this);
+                    });
+                };
+            }
+        },
     });
 
     //**************************************************************************************************
@@ -281,106 +376,11 @@
             //call the Backbone constructor fot the view.
             Backbone.View.call(this, attributes);
             if (this.model){
-                //bind all the computed values
-                this.initComputeds();
                 //Bind errors to the view.
                 this.bindErrors();
             }
         },
-        /**
-         * Method that initialize and bind all the computed fields not only in
-         *         the view but also in the model.
-         *
-         * @method initComputeds
-         */
-        initComputeds:function () {
-            this.model.computed = {};
-            for (var name in this.computed) {
-                this.AddComputed(name, this.computed[name]);
-            };
-        },
-        /**
-         * Adds a Computed property to the View, and the Model.
-         *
-         * @method AddComputed
-         *
-         * @param  {String}    name The name of the computed attribute, is the
-         *         same name that will be used latter to acces the value in the
-         *         model.
-         * @param  {object}    computed  Object that contains the definition of
-         *         the computed Field. It's structor is: Get: The get function
-         *         for getting it's value, receive no parameters and returs the
-         *         calculation result. Set: function that stores the attributes
-         *         values from the calculated input, performing a reverse
-         *         calculation. observe: The name of the model attributes
-         *         that will be observed and trigger the recalculation of the
-         *         field when change.
-         */
-        AddComputed: function (name, computed) {
-            
-            this.computed[name] = {
-                get: computed.get,
-                set: computed.set,
-                observe: computed.observe
-            };
         
-            //Add the computed to the model if present
-            if (this.model && this.model != {}){
-                //*******************************************
-                // WARNING: string replacing the 'this.model' to 'this' when attaching the get function to the model.
-                // whenever difining a computed field in a view, use this.model to access the model data.
-                //*******************************************
-                this.model.computed[name] = {};
-                if (computed.get){
-                    var GetFnBody = computed.get.toString().substring(computed.get.toString().indexOf("{") + 1, computed.get.toString().lastIndexOf("}"));
-                    var GetF = new Function('self', GetFnBody.replace(/this.model/g,'self').replace(/this/g,'self'));
-                    this.model.computed[name]['get'] = function(self){
-                        return GetF(self);
-                    };
-                    this.model.attributes[name] = this.model.computed[name].get(this.model);
-                }
-                if (computed.set){
-                    var SetFnBody = computed.set.toString().substring(computed.set.toString().indexOf("{") + 1, computed.set.toString().lastIndexOf("}"));
-                    var SetF = new Function('self', 'value', SetFnBody.replace(/this.model/g,'self').replace(/this/g,'self'));
-                    this.model.computed[name]['set'] = function(self, value){
-                        return SetF(self, value);
-                    };
-                }
-                //add the computed name to the ignore list of attributes to sync.
-                if (computed.ignore !== false){
-                    this.model.ignore = this.model.ignore||[];
-                    this.model.ignore.push(name);
-                }
-                //bind the corresponding observables to update the computed field.
-                if (computed.observe){
-                    this._observeComputed(name, computed.observe);
-                }
-            }
-        },
-        /**
-         * Binds the events to the observe attributes and retriger calculation of
-         *         computed attributes on change.
-         *
-         * @method _observeComputed
-         *
-         * @param  {Function}    computeFunc  The function that performs the
-         *         calculation of the computed value. This functions receives no
-         *         parameters and return the value of the attribute. In this
-         *         function is opt to the user to affect the DOM.
-         * @param  {Array}    observeArr   The name of the model attributes that
-         *         will be observed and trigger the recalculation of the field
-         *         when change.
-         */
-        _observeComputed: function (name, observeArr) {
-            if (observeArr && observeArr.length > 0) {
-                for (var cont = 0; cont < observeArr.length; cont++) {
-                    this.listenTo(this.model, 'change:' + observeArr[cont], function(){
-                        this.model.attributes[name] = this.model.computed[name].get(this.model);
-                        this.model.trigger('change:' + name, this.model);
-                    });
-                };
-            }
-        },
 
         /**
          * Bind the DOM element with the Model Attribute in whichever way.

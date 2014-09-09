@@ -6,27 +6,27 @@ var Person = Backbone.Grexer.Model.extend({
         'last_name': 'apellido',
         'base_salary' : 100,
         'bonus_salary' : 50
+    },
+    computed: {
+        // add the computed field in the view definition
+        'full_name': {
+            get: function(){
+                return this.get('first_name') + ' ' + this.get('last_name');
+            },
+            set: function (value) {
+                var arr = value.split(' ');
+                this.set('first_name', arr[0]);
+                this.set('last_name', arr[1]);
+            },
+            observe: ['first_name', 'last_name']
+        }
     }
+
 });
 
 //Extend from Backbone.Grexer.View for the views.
 var PersonView = Backbone.Grexer.View.extend({
     template: _.template($('#backboneView').html()),
-
-    computeds: {
-        // add the computed field in the view definition
-        'full_name': {
-            get: function(){
-                return this.model.get('first_name') + ' ' + this.model.get('last_name');
-            },
-            set: function (value) {
-                var arr = value.split(' ');
-                this.model.set('first_name', arr[0]);
-                this.model.set('last_name', arr[1]);
-            },
-            observe: ['first_name', 'last_name']
-        }
-    },
 
     bindings: function(){
         //Register the binds
