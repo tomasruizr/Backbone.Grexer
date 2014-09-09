@@ -49,13 +49,13 @@
             Backbone.Model.call(this, attributes, opts);
         },
         /**
-         * Defines the attributes that are computeds in a view. For each
+         * Defines the attributes that are computed in a view. For each
          *         Attribute will be a get method exposed to return the value of
          *         the computed value.
          *
          * @type {Object}
          */
-        computeds:{},
+        computed:{},
         /**
          * Array of Error message descriptions
          *
@@ -96,14 +96,14 @@
          *
          * @return {Object}           Returns the value of the Attribute.
          */
-        get: function(attribute) {
-            // Return a computed property value, if available:
-            // if (this.computeds[attribute]) {
-            //     return this.computeds[attribute].get(this);
-            // }
-            //return the Backbone.Model 'get' function.
-            return Backbone.Model.prototype.get.call(this, attribute);
-        },
+        // get: function(attribute) {
+        //     // Return a formated property value
+        //     // if (this.formated[attribute]) {
+        //     //     return this.formated[attribute].get(this);
+        //     // }
+        //     //return the Backbone.Model 'get' function.
+        //     return Backbone.Model.prototype.get.call(this, attribute);
+        // },
         /**
          * Set override to check if the attributes being set are present in the
          *         _validations_ property of the model
@@ -129,26 +129,22 @@
                 (attrs = {})[key] = val;
             }
             options || (options = {}); 
-   
-            //////////////////////////
-            //check for enumerables //
-            //////////////////////////
-            var comps = [];
             var self = this;
+
+            //////////////////////////////////////
+            //check for computed and formateds //
+            //////////////////////////////////////
+            var comps = [];
             _.forIn(attrs, function(value, key){
-                if (_.has(self.computeds, key)){
-                    self.computeds[key].set(self, value);
-                    self.trigger('change:'+ key, self);
-                    comps.push(key);
+                if (_.has(self.computed, key)){
+                    self.computed[key].set(self, value);
+                } else {
+                    return;
                 }
+                self.trigger('change:'+ key, self);
+                comps.push(key);
             });
-            // for (att in attrs){
-            //     if (_.has(attrs, Object.keys(this.computeds))){
-            //         this.computeds[att].set(this, attrs[att]);
-            //         comps.push(att);
-            //     }
-            // }
-            //remove computed fields from the set.
+            //remove computed or formated fields from the set.
             attrs = _.omit(attrs, comps);
             if (Object.keys(attrs).length == 0) return;
 
@@ -206,12 +202,35 @@
                 attributes[key] = value;
                 opts = options || {};
             }
-            //exclude computeds and every thing in the ignore array from being synced.
-            opts.data = JSON.stringify(_.omit(attributes,this.ignore));
+            //exclude computed and every thing in the ignore array from being synced.
+            var self = this;
+            _.forIn(attributes, function(value, key){
+                if (_.has(this.formated, key)){
+                    self.attibutes[key] = self.formated[key].get(self);
+                }
+            });
+            var attrs = _.omit(attributes,this.ignore);
+            opts.data = JSON.stringify();
             opts.contentType = "application/json";
 
             //Finally, make a call to the default save
             return Backbone.Model.prototype.save.call(this, attributes, opts);
+        },
+        /**
+         * Overrides the parse funtion to support fotmated values.
+         *
+         * @method parse
+         *
+         * @return {object} The attributes hash representation for the model.
+         */
+        parse: function(resp, options){ 
+            var self = this;
+            _.forIn(resp, function(value, key){
+                if (_.has(this.formated, key)){
+                    resp[key] = self.formated[key].set(self, value);
+                }
+            });
+            return resp;
         }
     });
 
@@ -244,7 +263,7 @@
          *
          * @type {Object}
          */
-        computeds:{},
+        computed:{},
         /**
          * Stores a map of the DOM elements associated with the errors of Validation in the model.
          *
@@ -264,8 +283,6 @@
             if (this.model){
                 //bind all the computed values
                 this.initComputeds();
-                //Make sure all the DOM events are in place for the view.
-                //this.delegateEvents();
                 //Bind errors to the view.
                 this.bindErrors();
             }
@@ -277,9 +294,9 @@
          * @method initComputeds
          */
         initComputeds:function () {
-            this.model.computeds = {};
-            for (var name in this.computeds) {
-                this.AddComputed(name, this.computeds[name]);
+            this.model.computed = {};
+            for (var name in this.computed) {
+                this.AddComputed(name, this.computed[name]);
             };
         },
         /**
@@ -301,7 +318,7 @@
          */
         AddComputed: function (name, computed) {
             
-            this.computeds[name] = {
+            this.computed[name] = {
                 get: computed.get,
                 set: computed.set,
                 observe: computed.observe
@@ -313,36 +330,32 @@
                 // WARNING: string replacing the 'this.model' to 'this' when attaching the get function to the model.
                 // whenever difining a computed field in a view, use this.model to access the model data.
                 //*******************************************
-                this.model.computeds[name] = {};
+                this.model.computed[name] = {};
                 if (computed.get){
                     var GetFnBody = computed.get.toString().substring(computed.get.toString().indexOf("{") + 1, computed.get.toString().lastIndexOf("}"));
                     var GetF = new Function('self', GetFnBody.replace(/this.model/g,'self').replace(/this/g,'self'));
-                    this.model.computeds[name]['get'] = function(self){
+                    this.model.computed[name]['get'] = function(self){
                         return GetF(self);
                     };
+                    this.model.attributes[name] = this.model.computed[name].get(this.model);
                 }
                 if (computed.set){
                     var SetFnBody = computed.set.toString().substring(computed.set.toString().indexOf("{") + 1, computed.set.toString().lastIndexOf("}"));
                     var SetF = new Function('self', 'value', SetFnBody.replace(/this.model/g,'self').replace(/this/g,'self'));
-                    this.model.computeds[name]['set'] = function(self, value){
+                    this.model.computed[name]['set'] = function(self, value){
                         return SetF(self, value);
                     };
                 }
-                
-
-                //     get: function(self){
-                //         return GetF(self);
-                //     },
-                // };
                 //add the computed name to the ignore list of attributes to sync.
-                if (computed.ignore){
+                if (computed.ignore !== false){
                     this.model.ignore = this.model.ignore||[];
                     this.model.ignore.push(name);
                 }
+                //bind the corresponding observables to update the computed field.
+                if (computed.observe){
+                    this._observeComputed(name, computed.observe);
+                }
             }
-            //bind the corresponding observables to update the computed field.
-            this._observeComputed(name, computed.observe);
-            this.model.attributes[name] = this.model.computeds[name].get(this.model);
         },
         /**
          * Binds the events to the observe attributes and retriger calculation of
@@ -362,12 +375,10 @@
             if (observeArr && observeArr.length > 0) {
                 for (var cont = 0; cont < observeArr.length; cont++) {
                     this.listenTo(this.model, 'change:' + observeArr[cont], function(){
-                        this.model.attributes[name] = this.model.computeds[name].get(this.model);
+                        this.model.attributes[name] = this.model.computed[name].get(this.model);
                         this.model.trigger('change:' + name, this.model);
                     });
                 };
-            } else {
-                throw new Error('The computed field '+ name +' should have parameters to observe and refresh. Check it\'s definition' );
             }
         },
 
