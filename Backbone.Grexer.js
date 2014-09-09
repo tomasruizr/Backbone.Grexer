@@ -6,6 +6,7 @@
  * Basically adds:
  * * Single or two way binding possibilities to the models with the views in the DOM.
  * * Use of Computed properties in the models and views.
+ * * Validation of the model
  *
  * @module Backbone.Grexer.js
  * @main
@@ -97,9 +98,9 @@
          */
         get: function(attribute) {
             // Return a computed property value, if available:
-            if (this.computeds[attribute]) {
-                return this.computeds[attribute].get(this);
-            }
+            // if (this.computeds[attribute]) {
+            //     return this.computeds[attribute].get(this);
+            // }
             //return the Backbone.Model 'get' function.
             return Backbone.Model.prototype.get.call(this, attribute);
         },
@@ -117,7 +118,6 @@
          * @param  {Object} options Key value store of the options.
          */
         set: function(key, val, options) {
-
             var attrs;
             if (key == null) return this;
 
@@ -128,8 +128,33 @@
             } else {
                 (attrs = {})[key] = val;
             }
+            options || (options = {}); 
+   
+            //////////////////////////
+            //check for enumerables //
+            //////////////////////////
+            var comps = [];
+            var self = this;
+            _.forIn(attrs, function(value, key){
+                if (_.has(self.computeds, key)){
+                    self.computeds[key].set(self, value);
+                    self.trigger('change:'+ key, self);
+                    comps.push(key);
+                }
+            });
+            // for (att in attrs){
+            //     if (_.has(attrs, Object.keys(this.computeds))){
+            //         this.computeds[att].set(this, attrs[att]);
+            //         comps.push(att);
+            //     }
+            // }
+            //remove computed fields from the set.
+            attrs = _.omit(attrs, comps);
+            if (Object.keys(attrs).length == 0) return;
 
-            options || (options = {});
+            /////////////
+            //validate //
+            /////////////
             // when is false, not validate since it is most likelly called from the construction
             // initializing the defaults. it is not a good practice to call the set with the
             // validate = false attribute, is much better to just not include it if the validation
@@ -148,6 +173,10 @@
                 }
                 options.validate = false;
             }
+
+            /////////////////
+            //Backbone Set //
+            /////////////////
             return Backbone.Model.prototype.set.call(this, attrs, options);
         },
         /**
@@ -248,11 +277,9 @@
          * @method initComputeds
          */
         initComputeds:function () {
-            this.computeds = {};
             this.model.computeds = {};
             for (var name in this.computeds) {
-                this.AddComputed(name, this.computeds[name].get, this.computeds[name].observe);
-                //this._observeComputed(this.computeds[name].get, this.computeds[name].observe);
+                this.AddComputed(name, this.computeds[name]);
             };
         },
         /**
@@ -260,43 +287,62 @@
          *
          * @method AddComputed
          *
-         * @param  {String}    computedName The name of the computed attribute,
-         *         is the same name that will be used latter to acces the value
-         *         in the model.
-         * @param  {Function}    computeFunc  The function that performs the
-         *         calculation of the computed value. This functions receives no
-         *         parameters and return the value of the attribute. In this
-         *         function is opt to the user to affect the DOM.
-         * @param  {Array}    observeArr   The name of the model attributes that
-         *         will be observed and trigger the recalculation of the field
-         *         when change.
+         * @param  {String}    name The name of the computed attribute, is the
+         *         same name that will be used latter to acces the value in the
+         *         model.
+         * @param  {object}    computed  Object that contains the definition of
+         *         the computed Field. It's structor is: Get: The get function
+         *         for getting it's value, receive no parameters and returs the
+         *         calculation result. Set: function that stores the attributes
+         *         values from the calculated input, performing a reverse
+         *         calculation. observe: The name of the model attributes
+         *         that will be observed and trigger the recalculation of the
+         *         field when change.
          */
-        AddComputed: function (computedName, computeFunc, observeArr) {
-            if (!this.computeds[computedName]){
-                this.computeds[computedName] = {
-                    get: computeFunc,
-                    observe: observeArr
-                };
-            }
+        AddComputed: function (name, computed) {
+            
+            this.computeds[name] = {
+                get: computed.get,
+                set: computed.set,
+                observe: computed.observe
+            };
+        
             //Add the computed to the model if present
             if (this.model && this.model != {}){
                 //*******************************************
                 // WARNING: string replacing the 'this.model' to 'this' when attaching the get function to the model.
                 // whenever difining a computed field in a view, use this.model to access the model data.
                 //*******************************************
-                var fnBody = computeFunc.toString().substring(computeFunc.toString().indexOf("{") + 1, computeFunc.toString().lastIndexOf("}"));
-                var f = new Function('self', fnBody.replace(/this.model/g,'self'));
-                this.model.computeds[computedName] = {
-                    get: function(self){
-                        return f(self);
-                    }
-                };
+                this.model.computeds[name] = {};
+                if (computed.get){
+                    var GetFnBody = computed.get.toString().substring(computed.get.toString().indexOf("{") + 1, computed.get.toString().lastIndexOf("}"));
+                    var GetF = new Function('self', GetFnBody.replace(/this.model/g,'self').replace(/this/g,'self'));
+                    this.model.computeds[name]['get'] = function(self){
+                        return GetF(self);
+                    };
+                }
+                if (computed.set){
+                    var SetFnBody = computed.set.toString().substring(computed.set.toString().indexOf("{") + 1, computed.set.toString().lastIndexOf("}"));
+                    var SetF = new Function('self', 'value', SetFnBody.replace(/this.model/g,'self').replace(/this/g,'self'));
+                    this.model.computeds[name]['set'] = function(self, value){
+                        return SetF(self, value);
+                    };
+                }
+                
+
+                //     get: function(self){
+                //         return GetF(self);
+                //     },
+                // };
                 //add the computed name to the ignore list of attributes to sync.
-                this.model.ignore = this.model.ignore||[];
-                this.model.ignore.push(computedName);
+                if (computed.ignore){
+                    this.model.ignore = this.model.ignore||[];
+                    this.model.ignore.push(name);
+                }
             }
             //bind the corresponding observables to update the computed field.
-            this._observeComputed(computeFunc, observeArr);
+            this._observeComputed(name, computed.observe);
+            this.model.attributes[name] = this.model.computeds[name].get(this.model);
         },
         /**
          * Binds the events to the observe attributes and retriger calculation of
@@ -312,13 +358,16 @@
          *         will be observed and trigger the recalculation of the field
          *         when change.
          */
-        _observeComputed: function (computeFunc, observeArr) {
+        _observeComputed: function (name, observeArr) {
             if (observeArr && observeArr.length > 0) {
                 for (var cont = 0; cont < observeArr.length; cont++) {
-                    this.listenTo(this.model, 'change:' + observeArr[cont], computeFunc);
+                    this.listenTo(this.model, 'change:' + observeArr[cont], function(){
+                        this.model.attributes[name] = this.model.computeds[name].get(this.model);
+                        this.model.trigger('change:' + name, this.model);
+                    });
                 };
             } else {
-                this.listenTo(this.model, 'change', computeFunc);
+                throw new Error('The computed field '+ name +' should have parameters to observe and refresh. Check it\'s definition' );
             }
         },
 

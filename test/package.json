@@ -13,6 +13,5 @@
     "lodash": "^2.4.1",
     "backbone": "tomasruizr/backbone",
     "Backbone.localstorage": "tomasruizr/Backbone.localStorage",
-    "Backbone.Grexer": "tomasruizr/Backbone.Grexer"
   }
 }
