@@ -46,6 +46,7 @@
         constructor: function(attributes, options){
             var opts = options || {};
             opts['validate'] = false;
+            opts['init'] = true;
             Backbone.Model.call(this, attributes, opts);
         //     //initialize all the computed values
             this.initComputeds();
@@ -155,7 +156,6 @@
                     this.trigger('valid', attrs);
                 }
                 options.validate = false;
-
             }
 
             //////////////////////
@@ -165,8 +165,13 @@
             _.forIn(attrs, function(value, key){
                 if (!_.has(self.computed, key) || self.attributes[key] === value){
                     return;
-                } 
-                self.computed[key].set(self, value);
+                }
+                if (options.init){
+                    self.attributes[key] = value; 
+                }
+                else{
+                    self.computed[key].set(self, value);
+                }
                 self.trigger('change:'+ key, self);
                 comps.push(key);
             });
@@ -219,6 +224,11 @@
 
             //Finally, make a call to the default save
             return Backbone.Model.prototype.save.call(this, attributes, opts);
+        },
+        fetch: function(options){
+            var opts = options || {};
+            opts['init'] = true;
+            return Backbone.Model.prototype.fetch.call(this, opts);    
         },
         /**
          * Overrides the parse funtion to support fotmated values.
@@ -327,13 +337,13 @@
                     });
                 };
             }
-        },
-        getAttrsForRender: function(){
-            var self = this;
-            return _.mapValues(this.attributes, function(value, key){
-                return self.get(key);
-            });
         }
+        //, getAttrsForRender: function(){
+        //     var self = this;
+        //     return _.mapValues(this.attributes, function(value, key){
+        //         return self.get(key);
+        //     });
+        // }
     });
 
     //**************************************************************************************************
